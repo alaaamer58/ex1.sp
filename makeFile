@@ -1,63 +1,60 @@
 CC = gcc
-SRC = main.c 
-SRC1 = basicClassification.c
-SRC2 = advancedClassificationLoop.c
-SRC3 = advancedClassificationRecursion.c
-OBJ1 = basicClassification.o
-OBJ2 = advancedClassificationLoop.o
-OBJ3 = advancedClassificationRecursion.o
-OBJ = main.o
-TARGET1 = mains
-TARGET2 = maindloop
-TARGET3 = maindrec
-CFLAGS = -Wall
-HEADER = NumClass.h
-LIBRARY = libclassloops.a 
-LIBRARY2 = libclassrec.a
-DYNLIBRARY3 = libclassrec.so
-DYNLIBRARY4 = libclassloops.so
+CFLAGS = -Wall -std=c99
+LDFLAGS = -lm
 
-all: $(TARGET1) $(TARGET2) $(TARGET3) loops recursives
+SRC_DIR = src
+OBJ_DIR = obj
+BIN_DIR = bin
 
-$(TARGET1): $(LIBRARY2) $(HEADER) $(SRC) $(SRC1) $(SRC3)
-	$(CC) $(CFLAGS) -fPIC -o $(TARGET1) $(SRC) $(SRC1) $(SRC3) -L. -lclassrec
+SRC_FILES = $(wildcard $(SRC_DIR)/*.c)
+OBJ_FILES = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC_FILES))
 
-$(TARGET2):$(DYNLIBRARY4) $(HEADER) $(SRC) $(SRC1) $(SRC2)
-	$(CC) $(CFLAGS) -fPIC -o $(TARGET2) $(SRC) $(SRC1) $(SRC2) -L. -lclassloops
+LIB_DIR = lib
 
-$(TARGET3):	$(DYNLIBRARY3) $(HEADER) $(SRC) $(SRC1) $(SRC3)
-	$(CC) $(CFLAGS) -fPIC -o $(TARGET3) $(SRC) $(SRC1) $(SRC3) -L. -lclassrec
+.PHONY: all clean
 
-loops: $(LIBRARY)
+all: make loops recursives recursived loopd mains maindloop maindrec
 
-$(LIBRARY): $(OBJ1) $(OBJ2) 
-	ar rcs $(LIBRARY) $(OBJ1) $(OBJ2)
+make:
+	mkdir -p $(BIN_DIR) $(OBJ_DIR) $(LIB_DIR)
 
-advancedClassificationLoop.o: advancedClassificationLoop.c $(HEADER)
-	$(CC) $(CFLAGS) -fPIC -c -o advancedClassificationLoop.o advancedClassificationLoop.c
+loops: $(LIB_DIR)/libclassloops.a
 
-advancedClassificationRecursion.o: advancedClassificationRecursion.c $(HEADER)
-	$(CC) $(CFLAGS) -fPIC -c -o advancedClassificationRecursion.o advancedClassificationRecursion.c
+recursives: $(LIB_DIR)/libclassrec.a
 
-basicClassification.o: basicClassification.c $(HEADER)
-	$(CC) $(CFLAGS) -fPIC -c -o basicClassification.o basicClassification.c
+recursived: $(LIB_DIR)/libclassrec.so
 
-recursives: $(LIBRARY2)
+loopd: $(LIB_DIR)/libclassloops.so
 
-$(LIBRARY2): $(OBJ3) $(OBJ1)
-	ar rcs $(LIBRARY2) $(OBJ3) $(OBJ1)
+mains: $(BIN_DIR)/mains
 
-recursived: $(DYNLIBRARY3)
+maindloop: $(BIN_DIR)/maindloop
 
-$(DYNLIBRARY3): $(OBJ1) $(OBJ3)
-	$(CC) -shared -o $(DYNLIBRARY3) $(OBJ1) $(OBJ3)
+maindrec: $(BIN_DIR)/maindrec
 
-loopd: $(DYNLIBRARY4)
+$(LIB_DIR)/libclassloops.a: $(OBJ_FILES)
+	ar rcs $@ $(OBJ_DIR)/basicClassification.o $(OBJ_DIR)/advancedClassificationLoop.o
 
-$(DYNLIBRARY4): $(OBJ1) $(OBJ2)
-	$(CC) -shared -o $(DYNLIBRARY4) $(OBJ1) $(OBJ2)
-	
-.PHONY: all clean loopd loops recursived recursives
+$(LIB_DIR)/libclassrec.a: $(OBJ_FILES)
+	ar rcs $@ $(OBJ_DIR)/basicClassification.o $(OBJ_DIR)/advancedClassificationRecursive.o
+
+$(LIB_DIR)/libclassrec.so: $(OBJ_FILES)
+	$(CC) -shared -o $@ $(OBJ_DIR)/basicClassification.o $(OBJ_DIR)/advancedClassificationRecursive.o
+
+$(LIB_DIR)/libclassloops.so: $(OBJ_FILES)
+	$(CC) -shared -o $@ $(OBJ_DIR)/basicClassification.o $(OBJ_DIR)/advancedClassificationLoop.o
+
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BIN_DIR)/mains: $(SRC_DIR)/main.c
+	$(CC) $(CFLAGS) $^ -o $@ -L$(LIB_DIR) -lclassrec $(LDFLAGS)
+
+$(BIN_DIR)/maindloop: $(SRC_DIR)/main.c
+	$(CC) $(CFLAGS) $^ -o $@ -L$(LIB_DIR) -lclassloops $(LDFLAGS)
+
+$(BIN_DIR)/maindrec: $(SRC_DIR)/main.c
+	$(CC) $(CFLAGS) $^ -o $@ -L$(LIB_DIR) -lclassrec $(LDFLAGS)
 
 clean:
-	rm -f $(LIBRARY) $(LIBRARY2) $(DYNLIBRARY3) $(DYNLIBRARY4) $(OBJ) $(TARGET1) $(TARGET2) $(TARGET3) $(OBJ1) $(OBJ2) $(OBJ3)
+	rm -rf $(BIN_DIR) $(OBJ_DIR) $(LIB_DIR)
